@@ -363,7 +363,13 @@ int ubi_show_ec(struct mtd_dev_info *mtd, int fd, struct ubi_scan_info **info,
 
 		si->ok_cnt += 1;
 		si->ec[eb] = ec;
-		printf("erase block %5d, erase count %llu\n", eb, ec);
+		printf("erase block %5d, erase count %llu\n"
+			#ifdef printf
+			" printf is macro "
+			#else
+			" printf NOt macro "
+			#endif
+			, eb, ec);
 		if (v)
 			printf(": OK, erase counter %u\n", si->ec[eb]);
 	}
