@@ -774,7 +774,8 @@ int mtd_get_dev_info1(libmtd_t desc, int mtd_num, struct mtd_dev_info *mtd)
 		return -1;
 	if (dev_read_pos_int(lib->mtd_oob_size, mtd_num, &mtd->oob_size))
 		return -1;
-	if (dev_read_pos_int(lib->mtd_oobavail, mtd_num, &mtd->oobavail)) {
+	if (dev_read_pos_int(lib->mtd_oobavail, mtd_num, &mtd->oobavail) &&
+		strcmp(mtd->type_str, "ubi")) {
 		/*
 		 * Fail to access oobavail sysfs file,
 		 * try ioctl ECCGETLAYOUT. */
