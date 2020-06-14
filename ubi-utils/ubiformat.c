@@ -1164,6 +1164,7 @@ int main(int argc, char * const argv[])
 		normsg("use offsets %d and %d",  ui.vid_hdr_offs, ui.data_offs);
 	}
 
+#if 0
 	if (args.image) {
 		err = flash_image(libmtd, &mtd, &ui, si);
 		if (err < 0)
@@ -1181,6 +1182,7 @@ int main(int argc, char * const argv[])
 		if (err)
 			goto out_free;
 	}
+#endif
 
 	ubi_scan_free(si);
 	close(args.node_fd);
