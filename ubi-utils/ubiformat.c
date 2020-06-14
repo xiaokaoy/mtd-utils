@@ -671,7 +671,7 @@ out_free:
 	return -1;
 }
 
-#if 1  // real ubiformat
+#if 0  // real ubiformat
 int main(int argc, char * const argv[])
 {
 	int err, verbose;
