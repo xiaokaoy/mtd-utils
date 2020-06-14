@@ -1058,7 +1058,7 @@ int main(int argc, char * const argv[])
 		verbose = 2;
 	else
 		verbose = 1;
-	err = ubi_scan(&mtd, args.node_fd, &si, verbose);
+	err = ubi_show_ec(&mtd, args.node_fd, &si, verbose);
 	if (err) {
 		errmsg("failed to scan mtd%d (%s)", mtd.mtd_num, args.node);
 		goto out_close;
