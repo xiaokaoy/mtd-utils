@@ -258,9 +258,9 @@ int ubi_show_ec(struct mtd_dev_info *mtd, int fd, struct ubi_scan_info **info,
 			fflush(stdout);
 		}
 		if (pr) {
-			printf("\r" PROGRAM_NAME ": scanning eraseblock %d -- %2lld %% complete  ",
-			       eb, (long long)(eb + 1) * 100 / mtd->eb_cnt);
-			fflush(stdout);
+	//		printf("\r" PROGRAM_NAME ": scanning eraseblock %d -- %2lld %% complete  ",
+	//		       eb, (long long)(eb + 1) * 100 / mtd->eb_cnt);
+	//		fflush(stdout);
 		}
 
 		ret = mtd_is_bad(mtd, fd, eb);
