@@ -5,7 +5,7 @@
 #
 # Normal rules
 #
-fork-for-gallagher.*
+fork-for-*.*
 .*
 *.gdb
 *.o
