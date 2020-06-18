@@ -1029,7 +1029,7 @@ int main(int argc, char * const argv[])
 		errmsg("mtd%d (%s) is a read-only device", mtd.mtd_num, args.node);
 		goto out_close;
 	}
-
+#if 0
 	/* Make sure this MTD device is not attached to UBI */
 	libubi = libubi_open();
 	if (libubi) {
@@ -1043,7 +1043,7 @@ int main(int argc, char * const argv[])
 			goto out_close;
 		}
 	}
-
+#endif
 	if (!args.quiet) {
 		normsg_cont("mtd%d (%s), size ", mtd.mtd_num, mtd.type_str);
 		util_print_bytes(mtd.size, 1);
