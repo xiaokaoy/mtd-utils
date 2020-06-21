@@ -17,6 +17,32 @@
 #include <mtd_swab.h>
 #include <crc32.h>
 #include "common.h"
+
+
+/* The variables below are set by command line arguments */
+struct args {
+	unsigned int yes:1;
+	unsigned int quiet:1;
+	unsigned int verbose:1;
+	unsigned int override_ec:1;
+	unsigned int manual_subpage;
+	int subpage_size;
+	int vid_hdr_offs;
+	int ubi_ver;
+	uint32_t image_seq;
+	off_t image_sz;
+	long long ec;
+	const char *image;
+	const char *node;
+	int node_fd;
+};
+
+static struct args args =
+{
+	.ubi_ver   = 1,
+};
+
+
 int main(int argc, char * const argv[])
 {
 	int err, verbose;
