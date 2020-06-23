@@ -1,7 +1,6 @@
 
-#define MAX_CONSECUTIVE_BAD_BLOCKS 4
-
 #define PROGRAM_NAME    "ubiec"
+
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -28,12 +27,8 @@ struct args {
 	unsigned int verbose:1;
 	unsigned int manual_subpage;
 	int subpage_size;
-	int vid_hdr_offs;
 	int ubi_ver;
-	uint32_t image_seq;
-	off_t image_sz;
 	long long ec;
-	const char *image;
 	const char *node;
 	int node_fd;
 };
@@ -58,9 +53,7 @@ static const char usage[] =
 
 static const struct option long_options[] = {
 	{ .name = "yes",             .has_arg = 0, .flag = NULL, .val = 'y' },
-	{ .name = "erase-counter",   .has_arg = 1, .flag = NULL, .val = 'e' },
 	{ .name = "verbose",         .has_arg = 0, .flag = NULL, .val = 'v' },
-	{ .name = "ubi-ver",         .has_arg = 1, .flag = NULL, .val = 'x' },
 	{ .name = "help",            .has_arg = 0, .flag = NULL, .val = 'h' },
 	{ .name = "version",         .has_arg = 0, .flag = NULL, .val = 'V' },
 	{ NULL, 0, NULL, 0},
@@ -68,51 +61,18 @@ static const struct option long_options[] = {
 
 static int parse_opt(int argc, char * const argv[])
 {
-	util_srand();
-	args.image_seq = rand();
-
 	while (1) {
-		int key, error = 0;
-		unsigned long int image_seq;
+		int key;
 
 		key = getopt_long(argc, argv, "nh?Vyqve:x:s:O:f:S:", long_options, NULL);
 		if (key == -1)
 			break;
 
 		switch (key) {
-		case 'O':
-			args.vid_hdr_offs = simple_strtoul(optarg, &error);
-			if (error || args.vid_hdr_offs <= 0)
-				return errmsg("bad VID header offset: \"%s\"", optarg);
-			break;
-
-		case 'f':
-			args.image = optarg;
-			break;
-
-		case 'S':
-			args.image_sz = util_get_bytes(optarg);
-			if (args.image_sz <= 0)
-				return errmsg("bad image-size: \"%s\"", optarg);
-			break;
 
 		case 'y':
 			args.yes = 1;
 			break;
-
-		case 'x':
-			args.ubi_ver = simple_strtoul(optarg, &error);
-			if (error || args.ubi_ver < 0)
-				return errmsg("bad UBI version: \"%s\"", optarg);
-			break;
-
-		case 'Q':
-			image_seq = simple_strtoul(optarg, &error);
-			if (error || image_seq > 0xFFFFFFFF)
-				return errmsg("bad UBI image sequence number: \"%s\"", optarg);
-			args.image_seq = image_seq;
-			break;
-
 
 		case 'v':
 			args.verbose = 1;
@@ -218,16 +178,6 @@ static int ubi_show_ec(struct mtd_dev_info *mtd, int fd, struct ubi_scan_info **
 		uint32_t crc;
 		struct ubi_ec_hdr ech;
 		unsigned long long ec;
-
-		if (v) {
-			normsg_cont("scanning eraseblock %d", eb);
-			fflush(stdout);
-		}
-		if (pr) {
-	//		printf("\r" PROGRAM_NAME ": scanning eraseblock %d -- %2lld %% complete  ",
-	//		       eb, (long long)(eb + 1) * 100 / mtd->eb_cnt);
-	//		fflush(stdout);
-		}
 
 		ret = mtd_is_bad(mtd, fd, eb);
 		if (ret == -1)
@@ -420,36 +370,10 @@ int main(int argc, char * const argv[])
 		args.manual_subpage = 1;
 	}
 
-	if (args.manual_subpage) {
-		/* Do some sanity check */
-		if (args.subpage_size > mtd.min_io_size) {
-			errmsg("sub-page cannot be larger than min. I/O unit");
-			goto out_close_mtd;
-		}
-
-		if (mtd.min_io_size % args.subpage_size) {
-			errmsg("min. I/O unit size should be multiple of "
-			       "sub-page size");
-			goto out_close_mtd;
-		}
-	}
-
 	args.node_fd = open(args.node, O_RDWR);
 	if (args.node_fd == -1) {
 		sys_errmsg("cannot open \"%s\"", args.node);
 		goto out_close_mtd;
-	}
-
-	/* Validate VID header offset if it was specified */
-	if (args.vid_hdr_offs != 0) {
-		if (args.vid_hdr_offs % 8) {
-			errmsg("VID header offset has to be multiple of min. I/O unit size");
-			goto out_close;
-		}
-		if (args.vid_hdr_offs + (int)UBI_VID_HDR_SIZE > mtd.eb_size) {
-			errmsg("bad VID header offset");
-			goto out_close;
-		}
 	}
 
 	if (!args.quiet) {
