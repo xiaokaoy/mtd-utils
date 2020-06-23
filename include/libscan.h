@@ -106,10 +106,6 @@ int ubi_scan(struct mtd_dev_info *mtd, int fd, struct ubi_scan_info **info,
  */
 void ubi_scan_free(struct ubi_scan_info *si);
 
-int ubi_show_ec(struct mtd_dev_info *mtd, int fd, struct ubi_scan_info **info,
-	     int verbose);
-
-
 #ifdef __cplusplus
 }
 #endif
