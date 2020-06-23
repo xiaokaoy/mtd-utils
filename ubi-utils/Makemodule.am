@@ -26,7 +26,7 @@ ubiformat_SOURCES = ubi-utils/ubiformat.c
 ubiformat_LDADD = libubi.a libubigen.a libmtd.a libscan.a
 
 ubiec_SOURCES = ubi-utils/ubiec.c
-ubiec_LDADD = libubi.a libubigen.a libmtd.a libscan.a
+ubiec_LDADD = libubi.a libubigen.a libscan.a libmtd.a
 
 ubirename_SOURCES = ubi-utils/ubirename.c
 ubirename_LDADD = libmtd.a libubi.a
