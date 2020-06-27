@@ -174,7 +174,7 @@ static int ubi_show_ec(struct mtd_dev_info *mtd, int fd, struct ubi_scan_info **
 #define ERASE_BLK_WIDTH  15
 #define ERASE_CNT_WIDTH  20
 	printf("%*s %*s\n", ERASE_BLK_WIDTH, "Erase Block#", ERASE_CNT_WIDTH, "Erase Count");
-	unsigned long long ec_latest = UINT64_MAX;
+	unsigned long long ec_latest = UINT64_MAX - 1;
 	int first_eb_with_latest_ec = -1;
 
 	for (eb = 0; eb < mtd->eb_cnt; eb++) {
