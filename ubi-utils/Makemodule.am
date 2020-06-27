@@ -25,6 +25,9 @@ ubinize_LDADD = libubi.a libubigen.a libmtd.a libiniparser.a
 ubiformat_SOURCES = ubi-utils/ubiformat.c
 ubiformat_LDADD = libubi.a libubigen.a libmtd.a libscan.a
 
+ubiec_SOURCES = ubi-utils/ubiec.c
+ubiec_LDADD = libubi.a libubigen.a libscan.a libmtd.a
+
 ubirename_SOURCES = ubi-utils/ubirename.c
 ubirename_LDADD = libmtd.a libubi.a
 
@@ -39,7 +42,7 @@ ubiblock_LDADD = libmtd.a libubi.a
 
 UBI_BINS = \
 	ubiupdatevol ubimkvol ubirmvol ubicrc32 ubinfo ubiattach \
-	ubidetach ubinize ubiformat ubirename mtdinfo ubirsvol ubiblock
+	ubidetach ubinize ubiformat ubiec ubirename mtdinfo ubirsvol ubiblock
 
 UBI_MAN = \
 	ubi-utils/ubinize.8

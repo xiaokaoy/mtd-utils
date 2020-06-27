@@ -6,6 +6,8 @@
 # Normal rules
 #
 fork-for-*.*
+nandsim.sh
+
 .*
 *.gdb
 *.o
@@ -92,6 +94,7 @@ ubiblock
 ubicrc32
 ubidetach
 ubiformat
+ubiec
 ubimkvol
 ubinfo
 ubinize
