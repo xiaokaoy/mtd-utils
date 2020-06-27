@@ -42,9 +42,6 @@ static const char doc[] = PROGRAM_NAME " version " VERSION
 		" - a tool to show erase counts of UBI erase blocks";
 
 static const char optionsstr[] =
-"-y, --yes                    assume the answer is \"yes\" for all question\n"
-"                             this program would otherwise ask\n"
-"-v, --verbose                be verbose\n"
 "-h, -?, --help               print help message\n"
 "-V, --version                print program version\n";
 
@@ -173,6 +170,13 @@ static int ubi_show_ec(struct mtd_dev_info *mtd, int fd, struct ubi_scan_info **
 	si->vid_hdr_offs = si->data_offs = -1;
 
 	verbose(v, "start scanning eraseblocks 0-%d", mtd->eb_cnt);
+
+#define ERASE_BLK_WIDTH  15
+#define ERASE_CNT_WIDTH  20
+	printf("%*s %*s\n", ERASE_BLK_WIDTH, "Erase Block#", ERASE_CNT_WIDTH, "Erase Count");
+	unsigned long long ec_latest = UINT64_MAX;
+	int first_eb_with_latest_ec = -1;
+
 	for (eb = 0; eb < mtd->eb_cnt; eb++) {
 		int ret;
 		uint32_t crc;
@@ -279,7 +283,29 @@ static int ubi_show_ec(struct mtd_dev_info *mtd, int fd, struct ubi_scan_info **
 
 		si->ok_cnt += 1;
 		si->ec[eb] = ec;
-		printf("erase block %5d, erase count %llu\n", eb, ec);
+
+		if (ec != ec_latest)
+		{
+			if (eb != 0)
+			{
+				if (eb - 1 == first_eb_with_latest_ec)
+					printf("%*d %*llu\n", ERASE_BLK_WIDTH, eb - 1, ERASE_CNT_WIDTH, ec_latest);
+				else
+					printf("%*d-%-*d %*llu\n", ERASE_BLK_WIDTH/2, first_eb_with_latest_ec, ERASE_BLK_WIDTH/2, eb-1, ERASE_CNT_WIDTH, ec_latest);
+			}
+
+			ec_latest = ec;
+			first_eb_with_latest_ec = eb;
+		}
+		
+		if (eb == mtd->eb_cnt - 1)
+		{
+			if (eb == first_eb_with_latest_ec)
+				printf("%*d %*llu\n", ERASE_BLK_WIDTH, eb, ERASE_CNT_WIDTH, ec_latest);
+			else
+				printf("%*d-%-*d %*llu\n", ERASE_BLK_WIDTH/2, first_eb_with_latest_ec, ERASE_BLK_WIDTH/2, eb, ERASE_CNT_WIDTH, ec_latest);
+		}
+		
 		if (v)
 			printf(": OK, erase counter %u\n", si->ec[eb]);
 	}
