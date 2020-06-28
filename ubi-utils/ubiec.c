@@ -22,9 +22,6 @@
 
 /* The variables below are set by command line arguments */
 struct args {
-	unsigned int yes:1;
-	unsigned int quiet:1;
-	unsigned int verbose:1;
 	unsigned int manual_subpage;
 	int subpage_size;
 	int ubi_ver;
@@ -49,8 +46,6 @@ static const char usage[] =
 "Usage: " PROGRAM_NAME " <MTD device node file name> ";
 
 static const struct option long_options[] = {
-	{ .name = "yes",             .has_arg = 0, .flag = NULL, .val = 'y' },
-	{ .name = "verbose",         .has_arg = 0, .flag = NULL, .val = 'v' },
 	{ .name = "help",            .has_arg = 0, .flag = NULL, .val = 'h' },
 	{ .name = "version",         .has_arg = 0, .flag = NULL, .val = 'V' },
 	{ NULL, 0, NULL, 0},
@@ -66,15 +61,6 @@ static int parse_opt(int argc, char * const argv[])
 			break;
 
 		switch (key) {
-
-		case 'y':
-			args.yes = 1;
-			break;
-
-		case 'v':
-			args.verbose = 1;
-			break;
-
 		case 'V':
 			common_print_version();
 			exit(EXIT_SUCCESS);
@@ -99,9 +85,6 @@ static int parse_opt(int argc, char * const argv[])
 		}
 	}
 
-	if (args.quiet && args.verbose)
-		return errmsg("using \"-q\" and \"-v\" at the same time does not make sense");
-
 	if (optind == argc)
 		return errmsg("MTD device name was not specified (use -h for help)");
 	else if (optind != argc - 1)
@@ -109,11 +92,6 @@ static int parse_opt(int argc, char * const argv[])
 
 	args.node = argv[optind];
 	return 0;
-}
-
-static int want_exit(void)
-{
-	return prompt("continue?", false) == true ? 0 : 1;
 }
 
 static void print_bad_eraseblocks(const struct mtd_dev_info *mtd,
@@ -148,12 +126,13 @@ static int all_ff(const void *buf, int len)
 	return 1;
 }
 
-static int ubi_show_ec(struct mtd_dev_info *mtd, int fd, struct ubi_scan_info **info,
-	     int verbose)
+static int ubi_show_ec(struct mtd_dev_info *mtd, int fd, struct ubi_scan_info **info)
 {
-	int eb, v = (verbose == 2), pr = (verbose == 1);
+	int eb, v=1; // if v=true, show info on bad/empty blks
 	struct ubi_scan_info *si;
 	unsigned long long sum = 0;
+	unsigned long long ec_latest = UINT64_MAX - 1;
+	int first_eb_with_latest_ec = -1;
 
 	si = calloc(1, sizeof(struct ubi_scan_info));
 	if (!si)
@@ -169,13 +148,9 @@ static int ubi_show_ec(struct mtd_dev_info *mtd, int fd, struct ubi_scan_info **
 
 	si->vid_hdr_offs = si->data_offs = -1;
 
-	verbose(v, "start scanning eraseblocks 0-%d", mtd->eb_cnt);
-
 #define ERASE_BLK_WIDTH  15
 #define ERASE_CNT_WIDTH  20
 	printf("%*s %*s\n", ERASE_BLK_WIDTH, "Erase Block#", ERASE_CNT_WIDTH, "Erase Count");
-	unsigned long long ec_latest = UINT64_MAX;
-	int first_eb_with_latest_ec = -1;
 
 	for (eb = 0; eb < mtd->eb_cnt; eb++) {
 		int ret;
@@ -224,9 +199,7 @@ static int ubi_show_ec(struct mtd_dev_info *mtd, int fd, struct ubi_scan_info **
 		}
 
 		ec = be64_to_cpu(ech.ec);
-		if (ec > EC_MAX) {
-			if (pr)
-				printf("\n");
+		if (ec > EC_MAX) {			
 			errmsg("erase counter in EB %d is %llu, while this "
 			       "program expects them to be less than %u",
 			       eb, ec, EC_MAX);
@@ -237,8 +210,6 @@ static int ubi_show_ec(struct mtd_dev_info *mtd, int fd, struct ubi_scan_info **
 			si->vid_hdr_offs = be32_to_cpu(ech.vid_hdr_offset);
 			si->data_offs = be32_to_cpu(ech.data_offset);
 			if (si->data_offs % mtd->min_io_size) {
-				if (pr)
-					printf("\n");
 				if (v)
 					printf(": corrupted because of the below\n");
 				warnmsg("bad data offset %d at eraseblock %d (n"
@@ -252,8 +223,6 @@ static int ubi_show_ec(struct mtd_dev_info *mtd, int fd, struct ubi_scan_info **
 			}
 		} else {
 			if ((int)be32_to_cpu(ech.vid_hdr_offset) != si->vid_hdr_offs) {
-				if (pr)
-					printf("\n");
 				if (v)
 					printf(": corrupted because of the below\n");
 				warnmsg("inconsistent VID header offset: was "
@@ -266,8 +235,6 @@ static int ubi_show_ec(struct mtd_dev_info *mtd, int fd, struct ubi_scan_info **
 				continue;
 			}
 			if ((int)be32_to_cpu(ech.data_offset) != si->data_offs) {
-				if (pr)
-					printf("\n");
 				if (v)
 					printf(": corrupted because of the below\n");
 				warnmsg("inconsistent data offset: was %d, but"
@@ -304,10 +271,7 @@ static int ubi_show_ec(struct mtd_dev_info *mtd, int fd, struct ubi_scan_info **
 				printf("%*d %*llu\n", ERASE_BLK_WIDTH, eb, ERASE_CNT_WIDTH, ec_latest);
 			else
 				printf("%*d-%-*d %*llu\n", ERASE_BLK_WIDTH/2, first_eb_with_latest_ec, ERASE_BLK_WIDTH/2, eb, ERASE_CNT_WIDTH, ec_latest);
-		}
-		
-		if (v)
-			printf(": OK, erase counter %u\n", si->ec[eb]);
+		}		
 	}
 
 	if (si->ok_cnt != 0) {
@@ -321,13 +285,11 @@ static int ubi_show_ec(struct mtd_dev_info *mtd, int fd, struct ubi_scan_info **
 	}
 
 	si->good_cnt = mtd->eb_cnt - si->bad_cnt;
-	verbose(v, "finished, mean EC %lld, %d OK, %d corrupted, %d empty, %d "
-		"alien, bad %d", si->mean_ec, si->ok_cnt, si->corrupted_cnt,
+	printf("mean EC %lld, %d OK, %d corrupted, %d empty, %d "
+		"alien, bad %d\n", si->mean_ec, si->ok_cnt, si->corrupted_cnt,
 		si->empty_cnt, si->alien_cnt, si->bad_cnt);
 
 	*info = si;
-	if (pr)
-		printf("\n");
 	return 0;
 
 out_ec:
@@ -342,7 +304,7 @@ out_si:
 
 int main(int argc, char * const argv[])
 {
-	int err, verbose;
+	int err;
 	libmtd_t libmtd;
 	struct mtd_info mtd_info;
 	struct mtd_dev_info mtd;
@@ -402,21 +364,13 @@ int main(int argc, char * const argv[])
 		goto out_close_mtd;
 	}
 
-	if (!args.quiet) {
-		normsg_cont("mtd%d (%s), size ", mtd.mtd_num, mtd.type_str);
-		util_print_bytes(mtd.size, 1);
-		printf(", %d eraseblocks of ", mtd.eb_cnt);
-		util_print_bytes(mtd.eb_size, 1);
-		printf(", min. I/O size %d bytes\n", mtd.min_io_size);
-	}
+	normsg_cont("mtd%d (%s), size ", mtd.mtd_num, mtd.type_str);
+	util_print_bytes(mtd.size, 1);
+	printf(", %d eraseblocks of ", mtd.eb_cnt);
+	util_print_bytes(mtd.eb_size, 1);
+	printf(", min. I/O size %d bytes\n", mtd.min_io_size);
 
-	if (args.quiet)
-		verbose = 0;
-	else if (args.verbose)
-		verbose = 2;
-	else
-		verbose = 1;
-	err = ubi_show_ec(&mtd, args.node_fd, &si, verbose);
+	err = ubi_show_ec(&mtd, args.node_fd, &si);
 	if (err) {
 		errmsg("failed to scan mtd%d (%s)", mtd.mtd_num, args.node);
 		goto out_close;
@@ -433,26 +387,18 @@ int main(int argc, char * const argv[])
 		goto out_free;
 	}
 
-	if (!args.quiet) {
-		if (si->ok_cnt)
-			normsg("%d eraseblocks have valid erase counter, mean value is %lld",
-			       si->ok_cnt, si->mean_ec);
-		if (si->empty_cnt)
-			normsg("%d eraseblocks are supposedly empty", si->empty_cnt);
-		if (si->corrupted_cnt)
-			normsg("%d corrupted erase counters", si->corrupted_cnt);
-		print_bad_eraseblocks(&mtd, si);
-	}
+	if (si->ok_cnt)
+		normsg("%d eraseblocks have valid erase counter, mean value is %lld",
+				si->ok_cnt, si->mean_ec);
+	if (si->empty_cnt)
+		normsg("%d eraseblocks are supposedly empty", si->empty_cnt);
+	if (si->corrupted_cnt)
+		normsg("%d corrupted erase counters", si->corrupted_cnt);
+	print_bad_eraseblocks(&mtd, si);	
 
 	if (si->alien_cnt) {
-		if (!args.yes || !args.quiet)
-			warnmsg("%d of %d eraseblocks contain non-UBI data",
-				si->alien_cnt, si->good_cnt);
-		if (!args.yes && want_exit()) {
-			if (args.yes && !args.quiet)
-				printf("yes\n");
-			goto out_free;
-		}
+		warnmsg("%d of %d eraseblocks contain non-UBI data",
+			si->alien_cnt, si->good_cnt);
 	}
 
 	ubi_scan_free(si);
